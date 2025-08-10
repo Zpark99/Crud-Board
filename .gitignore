@@ -1,0 +1,6 @@
+# 아래는 github에 올라가는 걸 방지하기 위함(보안)
+# gitignore은 프로젝트를 감싸는 전체 하위 폴더에 있어야 효력이 제대로 발생
+
+node_modules/
+.env
+.DS_Store
