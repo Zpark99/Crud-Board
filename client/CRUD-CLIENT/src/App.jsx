@@ -1,32 +1,21 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
 import './App.css';
+import { Route, Routes, Link } from 'react-router-dom';
+import PostList from './components/PostList';
+import PostForm from './components/PostForm';
+import PostDetail from './components/PostDetail';
 
-function App() {
-  const [posts, setPosts] = useState([]);
-  
-  useEffect(() => {
-    axios.get('http://localhost:3000/posts') // 백엔드 주소
-      .then(res => {
-        setPosts(res.data); // posts 상태 업데이트
-      })
-      .catch(err => {
-        console.error('데이터 불러오기 실패:', err);
-      });
-    }, []);
-
+export default function App() {
   return (
     <div>
-      <h1>갤러리</h1>
-      <ul>
-        {posts.map(post => (
-          <li key={post.id}>
-            <strong>{post.title}</strong> - {post.content}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
+      <nav>
+        <Link to="/">게시글 목록</Link> | <Link to="new">새 글 작성</Link>
+      </nav>
 
-export default App;
+      <Routes>
+        <Route path="/" element={<PostList />}/>
+        <Route path="/new" element={<PostForm />} />
+        <Route path="/posts/:id" element={<PostDetail />} />
+      </Routes>
+    </div>
+  );
+}

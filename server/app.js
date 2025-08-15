@@ -10,14 +10,14 @@ const setupWagger = require('./swagger');
 const app = express();
 
 // 서버 위한 포트 실행.
-const port = 3000;
+const port = 5000;
 
 // 모든 라우트에 대해 CORS 활성
 app.use(cors());
 app.use(bodyParser.json());
 
 // 라우터 등록
-app.use('./posts', postsRouter);
+app.use('./api/posts', postsRouter);
 
 // Swagger API 문서 제공 경로 
 setupWagger(app);
