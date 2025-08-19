@@ -1,38 +1,28 @@
-const API_URL = 'http://localhost:5000/posts';
+import axios from "axios";
 
-export const getPosts = async () => {
-  const res = await fetch(API_URL);
-  if (!res.ok) throw new Error('Failed to fetch posts');
-  return res.json();
-};
+const API_URL = "http://localhost:5000/posts"; // 백엔드 주소
 
-export const getPostById = async (id) => {
-  const res = await fetch(`${API_URL}/${id}`);
-  if (!res.ok) throw new Error('Failed to fetch posts');
-  return res.json();
-};
+export async function getPosts() {
+  const res = await axios.get(API_URL);
+  // axios는 4xx, 5xx 에러를 자동으로 catch 블록으로 보냄
+  return res.data;
+}
 
-export const createPost = async (postData) => {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json'},
-    body: JSON.stringify(postData),
-  });
-  if (!res.ok) throw new Error('Failed to fetch posts');
-  return res.json();
-};
+export async function getPost(id) {
+  const res = await axios.get(`${API_URL}/${id}`);
+  return res.data;
+}
 
-export const updatePost = async (id, postData) => {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(postData),
-  });
-  if (!res.ok) throw new Error('Failed to fetch posts');
-  return res.json();
-};
+export async function createPost(post) {
+  const res = await axios.post(API_URL, post);
+  return res.data;
+}
 
-export const deletePost = async (id) => {
-  const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to fetch posts');
-};
+export async function updatePost(id, post) {
+  const res = await axios.put(`${API_URL}/${id}`, post);
+  return res.data;
+}
+
+export async function deletePost(id) {
+  await axios.delete(`${API_URL}/${id}`);
+}

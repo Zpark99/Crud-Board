@@ -1,134 +1,230 @@
-const express = require('express'); // express 모듈 불러오기
-const router = express.Router(); // router 변수 생성 
-const db = require('../db/database'); // db 파일 import
-
-// router -> URL 요청 처리 
-// 2025/08/10 -> if => catch 문으로 변환 (에러처리 용이)
-
-// GET /posts 모든 게시글 조회
-
-router.get('/', async (req, res) => { // await 사용 -> async 선언 되어야지 가능
-  try {
-    // posts 표에서 모든 행 가져오기 
-    const [rows] = await db.query('SELECT * FROM posts');
-    res.json(rows);
-  } catch (err) { 
-    console.error('쿼리 오류', err);
-    // 서버 에러 발생 시 500 상태코드와 메세지 응답
-    res.status(500).json({ message: '서버 오류' });
-  }
-});
-
-// GET /posts/:id -> 특정 게시글 조회
-
-router.get('/:id', async (req, res) => {
-  const id  = Number(req.params.id);  // URL에서 id 받아와 숫자로 변환
-  try {
-    // ?(플레이스홀더) 이용 보안 ↑, id와 일치하는 게시글을 찾는 문장
-    const [rows] = await db.query('SELECT * FROM posts WHERE id = ?', [id]);
-    if (rows.length === 0) { // id가 없으면 해당 메세지 뜸
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다'})
-    } 
-    // 게시글 반환
-    res.json(rows[0]);
-  } catch (err) {
-    console.error('조회 오류', err);
-    res.status(500).json({ message: '서버 오류' });
-  }
-});
-
-// post/ -> 게시글 작성 
-router.post('/', async (req, res) => {
-  const { title, content } = req.body; // 제목, 내용이 변수의 내용이 됨.
-
-  if (!title || !content) { // OR 연산자, title 혹은 content 둘중 하나만 없어도 참
-    return res.status(400).json({ message: '제목과 내용 모두 입력하십시오.' }); 
-  }
-
-  try {
-    // 게시글 title, content 삽입 
-    const [result] = await db.query(
-      'INSERT INTO posts (title, content) VALUES (?, ?)',
-      [title, content]
-    );
-    // tjdrhdtl 201 created 메세지와 새 게시글 정보 반환 
-    res.status(201).json({ id: result.insertId, title, content });
-  } catch (err) {
-    console.error('작성 오류', err);
-    res.status(500).json({ message: '서버 오류 '});
-  }
-});
-
-// PUT /:id -> 게시글 수정
-
-router.put('/:id', async ( req, res ) => {
-  const id = Number(req.params.id); // URL에서 id 추출
-  const { title, content } = req.body; // 수정할 제목과 내용
-
-  try {
-    // 해당 id 게시글을 제목, 내용으로 업데이트
-    const [result] = await db.query(
-      'UPDATE posts SET title = ?, content = ? WHERE id =?',
-      [title, content, id]
-    );
-    // 수정된 행이 없으면 404 메세지 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: '수정할 게시글이 없습니다' });
-    }
-    res.json({ message: '게시글이 수정 되었습니다.' });
-  } catch (err) {
-    console.error('수정 오류', err);
-    res.status(500).json({ message: '서버 오류' });
-  }
-});
-  
-// DELETE /:id => 게시글 삭제 
-router.delete('/:id', async (req, res) => {
-  const id  = Number(req.params.id);
-  try {
-    // 삭제 쿼리, 삭제 된 행이 없으면 해당 게시글이 없음.
-    const [result] = await db.query ('DELETE FROM posts WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: '삭제할 게시글이 없습니다' });
-    }
-    //삭제 성공 시 204 No Content 상태 응답 (본문 x)
-    res.status(204).send();
-  } catch (err) {
-    console.error('삭제 오류', err);
-    res.status(500).json({ message: '서버 오류' });
-  }
-});
-
-// 모듈로서 내 보내기 => import 해서 쓰면 됨 
-module.exports = router;
+const express = require('express');
+const router = express.Router();
+const db = require('../db/database'); 
 
 /**
  * @swagger
  * /posts:
  *   get:
  *     summary: 모든 게시글 조회
+ *     tags:
+ *       - Posts
  *     responses:
  *       200:
- *         description: 게시글 목록 성공
+ *         description: 게시글 목록을 성공적으로 반환
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   title:
+ *                     type: string
+ *                   author:
+ *                     type: string
+ *                   created_at:
+ *                     type: string
+ *                     format: date-time
+ *                   views:
+ *                     type: integer
  */
-router.get('/', async (req, res) => { /* ... */ });
+router.get('/', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM posts');
+        res.json(rows);
+    } catch (err) {
+        console.error('쿼리 오류:', err);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
 
 /**
  * @swagger
  * /posts/{id}:
  *   get:
  *     summary: 특정 게시글 조회
+ *     tags:
+ *       - Posts
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: 게시글 아이디
+ *         description: 게시글의 고유 아이디
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: 게시글 조회 성공
+ *         description: 게시글 상세 정보를 성공적으로 반환
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 title:
+ *                   type: string
+ *                 content:
+ *                   type: string
  *       404:
  *         description: 게시글을 찾을 수 없음
  */
-router.get('/:id', async (req, res) => { /* ... */ });
+router.get('/:id', async (req, res) => {
+    const id = Number(req.params.id);
+    try {
+        const [rows] = await db.query('SELECT * FROM posts WHERE id = ?', [id]);
+        
+        if (rows.length === 0) {
+            return res.status(404).json({ message: '해당 게시글을 찾을 수 없습니다.' });
+        } 
+        
+        res.json(rows[0]);
+    } catch (err) {
+        console.error('게시글 조회 오류:', err);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+/**
+ * @swagger
+ * /posts:
+ *   post:
+ *     summary: 새 게시글 작성
+ *     tags:
+ *       - Posts
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               author:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: 게시글이 성공적으로 생성됨
+ *       400:
+ *         description: 제목과 내용이 누락됨
+ */
+
+router.post('/', async (req, res) => {
+    const { title, content, author } = req.body;
+    if (!title || !content) {
+        return res.status(400).json({ message: '제목과 내용을 모두 입력해야 합니다.' });
+    }
+
+    try {
+        const [result] = await db.query(
+            'INSERT INTO posts (title, content, author) VALUES (?, ?, ?)',
+            [title, content, author || '익명']
+        );
+        
+        res.status(201).json({ 
+            id: result.insertId, 
+            title, 
+            content, 
+            author: author || '익명' 
+        });
+    } catch (err) {
+        console.error('게시글 작성 오류:', err);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+/**
+ * @swagger
+ * /posts/{id}:
+ *   put:
+ *     summary: 특정 게시글 수정
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: 수정할 게시글의 아이디
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 게시글이 성공적으로 수정됨
+ *       404:
+ *         description: 수정할 게시글을 찾을 수 없음
+ */
+router.put('/:id', async (req, res) => {
+    const id = Number(req.params.id);
+    const { title, content } = req.body;
+
+    try {
+        const [result] = await db.query(
+            'UPDATE posts SET title = ?, content = ? WHERE id = ?',
+            [title, content, id]
+        );
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: '수정할 게시글을 찾을 수 없습니다.' });
+        }
+        
+        res.json({ message: '게시글이 성공적으로 수정되었습니다.' });
+    } catch (err) {
+        console.error('게시글 수정 오류:', err);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+    
+/**
+ * @swagger
+ * /posts/{id}:
+ *   delete:
+ *     summary: 특정 게시글 삭제
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: 삭제할 게시글의 아이디
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: 게시글이 성공적으로 삭제됨 (본문 없음)
+ *       404:
+ *         description: 삭제할 게시글을 찾을 수 없음
+ */
+router.delete('/:id', async (req, res) => {
+    const id = Number(req.params.id);
+    try {
+        const [result] = await db.query('DELETE FROM posts WHERE id = ?', [id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: '삭제할 게시글을 찾을 수 없습니다.' });
+        }
+        
+        res.status(204).send();
+    } catch (err) {
+        console.error('게시글 삭제 오류:', err);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+module.exports = router;
